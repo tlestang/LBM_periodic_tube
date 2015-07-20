@@ -32,11 +32,13 @@ int main()
   /*LOOP OF LB TIMESTEPS*/
 
   for (int lbTimeStepCount=0; lbTimeStepCount<numberOfTimeSteps;lbTimeStepCount++)
-
     {
 
+      streamingAndCollisionCompute(popHeapIn, popHeapOut, rhoHeap, uFieldHeap, Dx, Dy, q, tau);
     }
 }
+
+
 
 
     
