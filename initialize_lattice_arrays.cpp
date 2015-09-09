@@ -16,6 +16,19 @@ void initializePopulations(double ***fin, int Dx, int Dy)
 	}
     }
 }
+/*void initializePopulations(FILE* ifile, double ***fin, int Dx, int Dy)
+{
+  for(int x=0;x<Dx;x++)
+    {
+      for (int y=0;y<Dy;y++)
+	{
+	  for (int k=0;k<9;k++)
+	    {
+	      ifile >> fin[x][y][k];
+	    }
+	}
+    }
+    }*/
 
 void initializeFields(double **rho, double ***u, int Dx, int Dy)
 {

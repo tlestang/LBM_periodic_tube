@@ -20,7 +20,7 @@ int main()
   /*Parameters for LB simulation*/
   double cs = 1./sqrt(3); double rho0 = 1.0;
   int q = 9; //Number of discrete directions
-  int numberOfTimeSteps = 200000;
+  int numberOfTimeSteps = 1;
   int Dx=128, Dy=43; //Dimensions of grid
   int Lx = 10; int Ly = 10; //Dimensions of square
   double Ma = 0.03;   //Mach number
@@ -41,29 +41,6 @@ int main()
 
   int dummy = 0, dummy2 = 0; int dummy3=0;
 
-
-  /*Test if population file exists for this particular set of parameters*/
-  stringstream filename; string yes = "yes"; string input;
-  filename << "pop_"<<Re<<"_"<<Ma<<"_"<<Dx<<"_"<<Dy<<".datin";
-  ifstream ifile;
-  ifile.open(filename.str().c_str());
-  if(ifile)
-    {
-      cout << "A population file for this particular set of parameters already exists. Do you wish to load the populations ? (yes/no)" << endl;
-      cin >> input;
-      if(input.compare(yes)){cout << "Launching corresponding Poiseuille flow simulation" << endl;}
-      else
-	{
-	  cout << "Loading the populations" << endl;
-	}
-    }
-  else
-    {
-      cout << "No population file exists yet for the particular set of parameters. Launching corresponding Poiseuille flow simulation" << endl;
-    }
-
-
-  cin >> entry;
 
   /* ---- | Allocate populations and fields | --- */
 
@@ -90,10 +67,38 @@ int main()
     }
   
 
-  
-
-
-
+  /*Test if population file exists for this particular set of parameters*/
+  stringstream filename; string yes = "yes"; string input;
+  filename << "pop_"<<Re<<"_"<<Ma<<"_"<<Dx<<"_"<<Dy<<".datin";
+  ifstream ifile;
+  ifile.open(filename.str().c_str(), ios::binary);
+  if(ifile)
+    {
+      cout << "A population file for this particular set of parameters already exists. Do you wish to load the populations ? (yes/no)" << endl;
+      cin >> input;
+      if(input.compare(yes)){cout << "Launching corresponding Poiseuille flow simulation" << endl;}
+      else
+	{
+	  cout << "Loading the populations" << endl;
+	  for(int x=0;x<Dx;x++)
+	    {
+	      for (int y=0;y<Dy;y++)
+		{
+		  for (int k=0;k<9;k++)
+		    {
+		      ifile >> popHeapIn[x][y][k];
+		    }
+		}
+	    }
+	  cout << "Populations loaded" << endl;
+	  //initializePopulations(ifile, popHeapIn, Dx, Dy);
+	  ifile.close();
+	}
+    }
+  else
+    {
+      cout << "No population file exists yet for the particular set of parameters. Launching corresponding Poiseuille flow simulation" << endl;
+      ifile.close();
   /* START LBM PROCEDURE*/
 
   /*Initialization of population to equilibrium value*/
@@ -101,14 +106,12 @@ int main()
   initializeFields(rhoHeap, uFieldHeap, Dx, Dy);
 
 
-  cout << "POISEUILLE" << endl;
-  double uxSum; double uMean; double a; double seuil = 0.001;
+  double uxSum; double uMean; double a=1.0; double seuil = 0.0001;
   double u_ = 0; int t=0;
   fstream u_file("u_data.out", ios::out);
   /*FIRST STEP - POISEUILLE FLOW*/
-  while(a>seuil)
+  do
     {
-      if(t%(numberOfTimeSteps/100)==0){dummy3++; cout<<dummy3<<"%\r"; fflush(stdout);}
       /*Collision and streaming - Macroscopic fields*/
       streamingAndCollisionCompute(popHeapIn, popHeapOut, rhoHeap, uFieldHeap, Dx, Dy, q, tau);
             
@@ -130,20 +133,39 @@ int main()
       uMean = uxSum/Dx;
       a = (uMean - u_)/uMean;
       u_ = uMean;
-
-      t++;
       }
-  
+      t++;
+      if(t%1000==0){cout << "a = " << a << endl;}
+    }while(a>seuil);
+      
+      cout << "Write the stationary populations on disk for later reuse." << endl;
+  ofstream ofile;
+  ofile.open(filename.str().c_str(), ios::binary);
+  for(int x=0;x<Dx;x++)
+    {
+      for (int y=0;y<Dy;y++)
+	{
+	  for (int k=0;k<9;k++)
+	    {
+	      ofile << popHeapIn[x][y][k];
+	    }
+	}
     }
-  
+  ofile.close();
+    cout << "Poiseuille done."<<endl;
+    }
 
+
+  cin >> entry;
+
+  cout << "Starting LBM" << endl;
   for (int lbTimeStepCount=0; lbTimeStepCount<numberOfTimeSteps;lbTimeStepCount++)
     {
-      if(lbTimeStepCount%(numberOfTimeSteps/100)==0){dummy++; cout<<dummy<<"%\r"; fflush(stdout);}
-      
+      //if(lbTimeStepCount%(numberOfTimeSteps/100)==0){dummy++; cout<<dummy<<"%\r"; fflush(stdout);}
+
       /*Collision and streaming - Macroscopic fields*/
       streamingAndCollisionCompute(popHeapIn, popHeapOut, rhoHeap, uFieldHeap, Dx, Dy, q, tau);
-            
+      write_fluid_vtk(dummy2, Dx, Dy, rhoHeap, uFieldHeap);            
       /* --- Boundary conditions --- */
       computeDomainCorners(popHeapOut, Dx, Dy);
       computeDomainNoSlipWalls(popHeapOut, Dx, Dy);
@@ -160,7 +182,7 @@ int main()
           
 	}
   
-}
+    }
 
 
 
