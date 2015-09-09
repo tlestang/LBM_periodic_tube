@@ -20,7 +20,7 @@ int main()
   /*Parameters for LB simulation*/
   double cs = 1./sqrt(3); double rho0 = 1.0;
   int q = 9; //Number of discrete directions
-  int numberOfTimeSteps = 1;
+  int numberOfTimeSteps = 10000;
   int Dx=128, Dy=43; //Dimensions of grid
   int Lx = 10; int Ly = 10; //Dimensions of square
   double Ma = 0.03;   //Mach number
@@ -106,7 +106,7 @@ int main()
   initializeFields(rhoHeap, uFieldHeap, Dx, Dy);
 
 
-  double uxSum; double uMean; double a=1.0; double seuil = 0.0001;
+  double uxSum; double uMean; double a=1.0; double seuil = 0.01;
   double u_ = 0; int t=0;
   fstream u_file("u_data.out", ios::out);
   /*FIRST STEP - POISEUILLE FLOW*/
@@ -156,28 +156,30 @@ int main()
     }
 
 
-  cin >> entry;
-
   cout << "Starting LBM" << endl;
   for (int lbTimeStepCount=0; lbTimeStepCount<numberOfTimeSteps;lbTimeStepCount++)
     {
-      //if(lbTimeStepCount%(numberOfTimeSteps/100)==0){dummy++; cout<<dummy<<"%\r"; fflush(stdout);}
+      if(lbTimeStepCount%(numberOfTimeSteps/100)==0){dummy++; cout<<dummy<<"%\r"; fflush(stdout);}
 
       /*Collision and streaming - Macroscopic fields*/
       streamingAndCollisionCompute(popHeapIn, popHeapOut, rhoHeap, uFieldHeap, Dx, Dy, q, tau);
-      write_fluid_vtk(dummy2, Dx, Dy, rhoHeap, uFieldHeap);            
+
       /* --- Boundary conditions --- */
       computeDomainCorners(popHeapOut, Dx, Dy);
       computeDomainNoSlipWalls(popHeapOut, Dx, Dy);
       computeDomainInletOutlet(popHeapOut, Dx, Dy, beta);
       computeSquareBounceBack(popHeapOut, Dx, Dy, Lx, Ly);
+      /*Swap populations*/
+      temp = popHeapIn;
+      popHeapIn = popHeapOut;
+      popHeapOut = temp;  
 
-      /*Write .vtk file
+      /*Write .vtk file*/
       if(lbTimeStepCount%(numberOfTimeSteps/1000)==0)
 	{
-	  dummy2++;
       write_fluid_vtk(dummy2, Dx, Dy, rhoHeap, uFieldHeap);
-      }*/
+      dummy2++;
+      }
       
           
 	}
